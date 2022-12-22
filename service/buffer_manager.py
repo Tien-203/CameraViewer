@@ -1,5 +1,7 @@
+import threading
 from queue import Queue
 import logging
+import json
 
 from config.config import Config
 from common.common import *
@@ -11,13 +13,23 @@ class BufferManager(metaclass=Singleton):
         self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
         self.buffers = {}
+        self.is_updating = {}
 
-    def create_buffer(self, buffer_name: str, max_size=1):
+    def create_buffer(self, buffer_name: str, queue_size=1):
         if buffer_name in self.buffers:
             self.logger.warning(f"{buffer_name} already exists => Choose another buffer name")
         else:
-            self.buffers[buffer_name] = Queue(maxsize=max_size)
+            self.buffers[buffer_name] = Queue(maxsize=queue_size)
+            self.is_updating[buffer_name] = threading.Event()
+            self.is_updating[buffer_name].set()
             self.logger.info(f"INIT BUFFER {buffer_name} as TQueue")
+
+    def remove_buffer(self, buffer_name: str):
+        if buffer_name in self.buffers:
+            self.buffers.pop(buffer_name)
+            self.is_updating.pop(buffer_name)
+        else:
+            self.logger.info(f"BUFFER {buffer_name} is not exist")
 
     def get_data(self, buffer_name: str, timeout=None):
         if buffer_name in self.buffers:

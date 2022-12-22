@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 import uvicorn
+import time
 
 from utils.utils import setup_logging
 from pipeline.pipeline import Pipeline
 from config.config import Config
 from object.object import ViewerMessage, FaceDetectionData
 from service.buffer_manager import BufferManager
+from common.common import *
+
 
 app = FastAPI()
 setup_logging()
@@ -16,25 +19,34 @@ buffer_manager = BufferManager(config=_config)
 
 @app.post("/add_camera")
 async def add_camera(camera_info: ViewerMessage):
-    result = pipeline.camera_viewer(input_data=camera_info)
+    pipeline.camera_viewer.add_camera(input_data=camera_info)
+    result = pipeline.streaming.start_stream(input_data=camera_info)
     return result
 
 
-# @app.get("/face_recognition_notice/{camera_id}/{frame_id}/{num_box}")
-# async def face_recognition_notice(camera_id: str, frame_id: str, num_box: int):
-#     for i in range(num_box):
-#         input_data = {"num_box": num_box, "box_id": "a", "box": [50, 50, 500, 500], "camera_id": camera_id,
-#                       "face": "", "byte_image": "", "mode": "", "frame_id": frame_id, "personal_information": {}}
-#         data = FaceDetectionData(**input_data)
-#         buffer_manager.put_data(buffer_name=camera_id, data=data)
+@app.post("/stop_camera")
+async def add_camera(camera_info: ViewerMessage):
+    pipeline.camera_viewer.stop_camera(input_data=camera_info)
+    result = pipeline.streaming.stop_stream(input_data=camera_info)
+    return result
 
 
 @app.post("/face_recognition_notice")
 async def face_recognition_notice(face_item: FaceDetectionData):
-    buffer_manager.put_data(buffer_name=face_item.camera_id, data=face_item)
+    if face_item.camera_id in buffer_manager.buffers:
+        buffer_manager.put_data(buffer_name=OUTPUT_FACE_REG, data=face_item)
+        return "Done"
+    else:
+        return "Camera isn't added to list"
+
+
+@app.get("/get_all_camera")
+async def get_all_camera():
+    result = list(buffer_manager.buffers.keys())
+    result.remove(OUTPUT_FACE_REG)
+    return result
 
 
 if __name__ == "__main__":
     pipeline.start()
-    pipeline.join()
-    uvicorn.run("app:app", host='localhost', port=8888, reload=True, debug=True, workers=1)
+    uvicorn.run("app:app", host='localhost', port=8888, reload=False, debug=False, workers=1)

@@ -23,4 +23,4 @@ class GateWay(metaclass=Singleton):
     def run(self):
         while True:
             data: FaceDetectionData = self.buffer_manager.get_data(buffer_name=OUTPUT_FACE_REG)
-            self.buffer_manager.put_data(buffer_name=data.camera_id, data=data)
+            self.buffer_manager.put_data(buffer_name=f"{data.camera_id}_detection", data=data)

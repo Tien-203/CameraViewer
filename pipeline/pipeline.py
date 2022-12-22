@@ -1,17 +1,17 @@
 from config.config import Config
-from service.camera_viewer import CameraViewer
-from service.gateway import GateWay
+from service.camera_viewer import CameraViewer, QueueFrameManage, Streaming
 
 
 class Pipeline:
     def __init__(self, config: Config = None):
         self.config = config
         self.camera_viewer = CameraViewer(config=self.config)
-        self.gateway = GateWay(config=self.config)
+        self.streaming = Streaming(config=self.config)
+        self.frame_manager = QueueFrameManage(config=self.config)
 
     def start(self):
-        self.gateway.start()
+        self.frame_manager.start()
 
     def join(self):
-        self.gateway.join()
+        self.frame_manager.join()
 
